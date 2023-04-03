@@ -1,0 +1,4 @@
+PGFIO/stdio: Value too large for defined data type
+PGFIO-F-/OPEN/unit=10/error code returned by host stdio - 75.
+ File name = SOM_input_data.txt
+ In source file calc_som_fit_hardcode.f90, at line number 74

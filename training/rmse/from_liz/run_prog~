@@ -1,0 +1,48 @@
+#!/bin/tcsh -f
+
+# Number of days
+set dys = 1714
+
+set som = ('7x5' '5x4')
+set dom = ('Alaska_domain' 'Full_domain')
+set x = ('7' '5')
+set y = ('5' '4')
+set len = ('3854' '7984')
+
+set input_dir = /data1/ecassano/Current_projects/Extremes/Data/Input_data_used_to_make_SOMs/
+set som_dir = /data1/ecassano/Current_projects/Extremes/Data/SOM_output/
+set visual_dir = /data1/ecassano/Current_projects/Extremes/Counts/Visual_files/
+
+set s = 1 # SOM size
+while ($s <= 2) 
+
+   set d = 1 # Which domain?
+   while ($d <= 2) 
+   
+      ln -s $input_dir{$dom[$d]}/met_em_1989_2007_djf_slp_anom.dat SOM_input_data.txt
+      ln -s $som_dir{$dom[$d]}/{$som[$s]}/DJF/som_output.txt SOM_output_data.txt
+      ln -s $visual_dir{$dom[$d]}/{$som[$s]}/DJF/met_em.vis visual.txt 
+
+      sed -e "s/my_len/"{$len[$d]}"/" \
+          -e "s/my_dys/"{$dys}"/" \
+          -e "s/my_x/"{$x[$s]}"/" \
+          -e "s/my_y/"{$y[$s]}"/" calc_som_fit.f90 > final_prog.f90
+
+      pgf90 final_prog.f90
+      a.out
+
+      mv rmse.txt ERA-I_{$som[$s]}_{$dom[$d]}.rmse.txt
+      mv bias.txt ERA-I_{$som[$s]}_{$dom[$d]}.bias.txt
+      mv corr.txt ERA-I_{$som[$s]}_{$dom[$d]}.corr.txt
+      mv mse.txt ERA-I_{$som[$s]}_{$dom[$d]}.mse.txt
+      mv mae.txt ERA-I_{$som[$s]}_{$dom[$d]}.mae.txt
+
+      rm final_prog.f90
+      rm SOM_input_data.txt
+      rm SOM_output_data.txt
+      rm visual.txt
+
+      @ d ++
+   end
+   @ s ++
+end

@@ -1,0 +1,49 @@
+var_dims: 6 6 5
+alpha: 0.005 0.01 0.02 0.03 0.04 0.05
+rlen: 10000 50000 100000 250000 500000 1000000
+radius: 2 3 4 5 6
+nx_ny: 8 6
+variable: wind
+
+wind-a0.005_rlen10000_r2 wind-a0.005_rlen10000_r3 wind-a0.005_rlen10000_r4 wind-a0.005_rlen10000_r5 wind-a0.005_rlen10000_r6
+wind-a0.005_rlen50000_r2 wind-a0.005_rlen50000_r3 wind-a0.005_rlen50000_r4 wind-a0.005_rlen50000_r5 wind-a0.005_rlen50000_r6
+wind-a0.005_rlen100000_r2 wind-a0.005_rlen100000_r3 wind-a0.005_rlen100000_r4 wind-a0.005_rlen100000_r5 wind-a0.005_rlen100000_r6
+wind-a0.005_rlen250000_r2 wind-a0.005_rlen250000_r3 wind-a0.005_rlen250000_r4 wind-a0.005_rlen250000_r5 wind-a0.005_rlen250000_r6
+wind-a0.005_rlen500000_r2 wind-a0.005_rlen500000_r3 wind-a0.005_rlen500000_r4 wind-a0.005_rlen500000_r5 wind-a0.005_rlen500000_r6
+wind-a0.005_rlen1000000_r2 wind-a0.005_rlen1000000_r3 wind-a0.005_rlen1000000_r4 wind-a0.005_rlen1000000_r5 wind-a0.005_rlen1000000_r6
+
+wind-a0.01_rlen10000_r2 wind-a0.01_rlen10000_r3 wind-a0.01_rlen10000_r4 wind-a0.01_rlen10000_r5 wind-a0.01_rlen10000_r6
+wind-a0.01_rlen50000_r2 wind-a0.01_rlen50000_r3 wind-a0.01_rlen50000_r4 wind-a0.01_rlen50000_r5 wind-a0.01_rlen50000_r6
+wind-a0.01_rlen100000_r2 wind-a0.01_rlen100000_r3 wind-a0.01_rlen100000_r4 wind-a0.01_rlen100000_r5 wind-a0.01_rlen100000_r6
+wind-a0.01_rlen250000_r2 wind-a0.01_rlen250000_r3 wind-a0.01_rlen250000_r4 wind-a0.01_rlen250000_r5 wind-a0.01_rlen250000_r6
+wind-a0.01_rlen500000_r2 wind-a0.01_rlen500000_r3 wind-a0.01_rlen500000_r4 wind-a0.01_rlen500000_r5 wind-a0.01_rlen500000_r6
+wind-a0.01_rlen1000000_r2 wind-a0.01_rlen1000000_r3 wind-a0.01_rlen1000000_r4 wind-a0.01_rlen1000000_r5 wind-a0.01_rlen1000000_r6
+
+wind-a0.02_rlen10000_r2 wind-a0.02_rlen10000_r3 wind-a0.02_rlen10000_r4 wind-a0.02_rlen10000_r5 wind-a0.02_rlen10000_r6
+wind-a0.02_rlen50000_r2 wind-a0.02_rlen50000_r3 wind-a0.02_rlen50000_r4 wind-a0.02_rlen50000_r5 wind-a0.02_rlen50000_r6
+wind-a0.02_rlen100000_r2 wind-a0.02_rlen100000_r3 wind-a0.02_rlen100000_r4 wind-a0.02_rlen100000_r5 wind-a0.02_rlen100000_r6
+wind-a0.02_rlen250000_r2 wind-a0.02_rlen250000_r3 wind-a0.02_rlen250000_r4 wind-a0.02_rlen250000_r5 wind-a0.02_rlen250000_r6
+wind-a0.02_rlen500000_r2 wind-a0.02_rlen500000_r3 wind-a0.02_rlen500000_r4 wind-a0.02_rlen500000_r5 wind-a0.02_rlen500000_r6
+wind-a0.02_rlen1000000_r2 wind-a0.02_rlen1000000_r3 wind-a0.02_rlen1000000_r4 wind-a0.02_rlen1000000_r5 wind-a0.02_rlen1000000_r6
+
+wind-a0.03_rlen10000_r2 wind-a0.03_rlen10000_r3 wind-a0.03_rlen10000_r4 wind-a0.03_rlen10000_r5 wind-a0.03_rlen10000_r6
+wind-a0.03_rlen50000_r2 wind-a0.03_rlen50000_r3 wind-a0.03_rlen50000_r4 wind-a0.03_rlen50000_r5 wind-a0.03_rlen50000_r6
+wind-a0.03_rlen100000_r2 wind-a0.03_rlen100000_r3 wind-a0.03_rlen100000_r4 wind-a0.03_rlen100000_r5 wind-a0.03_rlen100000_r6
+wind-a0.03_rlen250000_r2 wind-a0.03_rlen250000_r3 wind-a0.03_rlen250000_r4 wind-a0.03_rlen250000_r5 wind-a0.03_rlen250000_r6
+wind-a0.03_rlen500000_r2 wind-a0.03_rlen500000_r3 wind-a0.03_rlen500000_r4 wind-a0.03_rlen500000_r5 wind-a0.03_rlen500000_r6
+wind-a0.03_rlen1000000_r2 wind-a0.03_rlen1000000_r3 wind-a0.03_rlen1000000_r4 wind-a0.03_rlen1000000_r5 wind-a0.03_rlen1000000_r6
+
+wind-a0.04_rlen10000_r2 wind-a0.04_rlen10000_r3 wind-a0.04_rlen10000_r4 wind-a0.04_rlen10000_r5 wind-a0.04_rlen10000_r6
+wind-a0.04_rlen50000_r2 wind-a0.04_rlen50000_r3 wind-a0.04_rlen50000_r4 wind-a0.04_rlen50000_r5 wind-a0.04_rlen50000_r6
+wind-a0.04_rlen100000_r2 wind-a0.04_rlen100000_r3 wind-a0.04_rlen100000_r4 wind-a0.04_rlen100000_r5 wind-a0.04_rlen100000_r6
+wind-a0.04_rlen250000_r2 wind-a0.04_rlen250000_r3 wind-a0.04_rlen250000_r4 wind-a0.04_rlen250000_r5 wind-a0.04_rlen250000_r6
+wind-a0.04_rlen500000_r2 wind-a0.04_rlen500000_r3 wind-a0.04_rlen500000_r4 wind-a0.04_rlen500000_r5 wind-a0.04_rlen500000_r6
+wind-a0.04_rlen1000000_r2 wind-a0.04_rlen1000000_r3 wind-a0.04_rlen1000000_r4 wind-a0.04_rlen1000000_r5 wind-a0.04_rlen1000000_r6
+
+wind-a0.05_rlen10000_r2 wind-a0.05_rlen10000_r3 wind-a0.05_rlen10000_r4 wind-a0.05_rlen10000_r5 wind-a0.05_rlen10000_r6
+wind-a0.05_rlen50000_r2 wind-a0.05_rlen50000_r3 wind-a0.05_rlen50000_r4 wind-a0.05_rlen50000_r5 wind-a0.05_rlen50000_r6
+wind-a0.05_rlen100000_r2 wind-a0.05_rlen100000_r3 wind-a0.05_rlen100000_r4 wind-a0.05_rlen100000_r5 wind-a0.05_rlen100000_r6
+wind-a0.05_rlen250000_r2 wind-a0.05_rlen250000_r3 wind-a0.05_rlen250000_r4 wind-a0.05_rlen250000_r5 wind-a0.05_rlen250000_r6
+wind-a0.05_rlen500000_r2 wind-a0.05_rlen500000_r3 wind-a0.05_rlen500000_r4 wind-a0.05_rlen500000_r5 wind-a0.05_rlen500000_r6
+wind-a0.05_rlen1000000_r2 wind-a0.05_rlen1000000_r3 wind-a0.05_rlen1000000_r4 wind-a0.05_rlen1000000_r5 wind-a0.05_rlen1000000_r6
+
