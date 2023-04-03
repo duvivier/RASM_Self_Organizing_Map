@@ -1,0 +1,537 @@
+; PROGRAM DESCRIPTION: This script plots four panels comparing sea level 
+;                      pressure and sea ice in two datasets
+; INPUT DATA: ERA-I and RASM-WRF SLP and Satellite and RASM-CICE sea ice
+;             multiyear mean monthly files
+; OUTPUT DATA: A panel plot comparing variables
+; Note: This has been adapted from the RASM version for the RASM-SOM analysis.
+;       It can be looped easily for multiple months of analysis.
+; CREATOR: Modified by Alice DuVivier - Feb. 2015
+;***************************************
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+;***************************************
+begin
+; MANUAL INPUTS - for testing purposes
+seas  = "DJF" ;"11"
+zoom  = True 
+
+; BEGIN SCRIPT
+; things to set right away, but not passed through cshell script
+dir = "/vardar/data5/duvivier/SOM-RASM/DATA/"
+title1 = "era"   ;"ERA-I"
+title2 = "wrf"   ;"RASM"
+title3 = "cice"  ;"CICE"
+title4 = "sat"   ; "Satellite seaice"
+year = "1990-2010"
+date1     = year+"-"+seas
+varcode   = "SLP"
+print("Running four-panel comparison of SLP and seaice for "+date1)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; Set preferences for vartypes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ if (varcode.eq."SLP") then
+    vartitle1 = "Sea Level Pressure"
+    vartitle2 = "Sea Ice"
+    ; note that these match the order of titles above. can't be flipped!
+    invar1 = "slp"
+    invar2 = "PMSL_M"
+    invar3 = "aice"
+    invar4 = "hi"
+    cmaptype = "pressure"
+ end if
+; set contour limits manually:
+  if (cmaptype.eq."pressure") then
+    cmin1               = 920
+    cmax1               = 1064.
+    clev1               = 2.
+    cmin2               = -16.
+    cmax2               = 16.
+    clev2               = 2.
+    clevd               = clev1*2
+    stride1             = 4                 ; label stride
+    stride2             = 2                 ; label stride for diff plot
+    plotlines           = True              ; lines for reg plot
+    difflines           = False              ; lines for diff plot
+    cntype              = "AreaFill"
+    spreadstart1        = 2                 ; start at color
+    spreadend1          = 74                ; end at color
+    spreadstart2        = 76                ; start at color
+    spreadend2          = 129               ; end at color
+    colormap            = "slp_anoms.dave"
+  end if
+
+  dum = new((/1/),"float")
+  fill = dum@_FillValue
+  delete(dum)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; Data Processing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;
+; load in variables
+;;;;;;;;;;
+  ; Get first file's info (ERA)
+  print("Loading "+title1)
+  f1 = addfile(dir+title1+"/multiyear_means_panarctic/r27SOM."+title1+"."+date1+".nc","r")
+  var1 = f1->$invar1$(0,:,:)
+  ; convert to hPa
+  var1 = var1/100.0
+  var1@units = "hPa"
+  var1@_FillValue = fill
+  delete(f1)
+
+  ; Get second file's variable info (WRF) and geography info
+  print("Loading "+title2)
+  f2 = addfile(dir+title2+"/multiyear_means_panarctic/r27SOM."+title2+"."+date1+".nc","r")
+  var2 = f2->$invar2$(0,:,:)
+  ; convert to hPa
+  var2 = var2/100.0
+  var2@units = "hPa"
+  var2@_FillValue = fill
+  geo_w = addfile(dir+"wrf/geo_em.50km.nc","r")
+  lat_w = geo_w->XLAT_M(0,:,:)
+  lon_w = geo_w->XLONG_M(0,:,:)
+  z_sfc = geo_w->HGT_M(0,:,:)
+  dims = dimsizes(lat_w)
+  n_sn_w = dims(0)
+  n_we_w = dims(1)
+  delete([/f2,geo_w,dims/])
+
+  ; Get third file's variable info (CICE) and geography info
+  print("Loading "+title3)
+  f3 = addfile(dir+title3+"/multiyear_means_panarctic/r27SOM."+title3+"."+date1+".nc","r")
+  var3 = f3->$invar3$(0,:,:)
+  var3a = f3->$invar4$(0,:,:)
+  ; convert thickness to cm
+  var3a = var3a*100.0
+  var3a@units = "cm"
+  lat_p = f3->TLAT
+  lon_p = f3->TLON
+  dims = dimsizes(lat_p)
+  n_sn_p = dims(0)
+  n_we_p = dims(1)
+  delete([/f3,dims/]) 
+
+  ; Get fourth file's variable info (Satellite ice)
+  print("Loading "+title4)
+  f4 = addfile(dir+title4+"/NPS_seaice_daily_Nov1-1990_thru_Mar31-2010.nc","r")
+  dum = f4->time_string
+  times = chartostring(dum)
+  yy = chartostring(dum(:,7:10))
+  mm = chartostring(dum(:,3:5))
+  ; deal with just data we want by month
+  ; make 
+  if(seas .eq. "11")then
+    tag = "Nov"
+  end if 
+  if(seas .eq. "12")then
+    tag = "Dec"
+  end if
+  if(seas .eq. "01")then
+    tag = "Jan"
+  end if 
+  if(seas .eq. "02")then
+    tag = "Feb"
+  end if
+  if(seas .eq. "03")then
+    tag = "Mar"
+  end if
+  if(seas .eq. "xx")then
+    indices = ind((mm.eq."Nov").or.(mm.eq."Dec").or.(mm.eq."Jan").or.(mm.eq."Feb").or.(mm.eq."Mar"))
+  else if(seas .eq. "DJF")then
+          indices = ind((mm.eq."Dec").or.(mm.eq."Jan").or.(mm.eq."Feb"))
+       else
+          indices = ind(mm.eq.tag)
+       end if
+  end if
+  ; load just these values, not all sea ice file
+  var4_all_yrs = f4->conc(indices,:,:)
+  var4_all_yrs@_FillValue = -99999
+  ; make 20 year average then delete individual years
+  var4 = dim_avg_n_Wrap(var4_all_yrs,0)
+  delete([/f4,var4_all_yrs/])
+
+; prints together the variable title (set above for each type of data) with title1 (defined in cshell as the wrf or met info) and the max and min values
+  print(vartitle1+" "+title1+" min: "+min(var1)+"  max: "+max(var1)) 
+  print(vartitle1+" "+title2+" min: "+min(var2)+"  max: "+max(var2))
+
+; assign 2d lat and lon attributes for plotting:
+  var1@lat2d  = lat_w
+  var1@lon2d  = lon_w
+  var2@lat2d  = lat_w
+  var2@lon2d  = lon_w
+  var3@lat2d  = lat_p
+  var3@lon2d  = lon_p
+  var3a@lat2d  = lat_p
+  var3a@lon2d  = lon_p
+  var4@lat2d  = lat_p
+  var4@lon2d  = lon_p
+
+; create difference file
+  diff = var2 - var1
+  copy_VarMeta(var2,diff)
+  title_diff = "RASM - ERA-I "+vartitle1 
+  print(vartitle1+" diff min: "+min(diff)+"      max: "+max(diff))
+
+; mask data based on terrain height >500 m
+  var1 = where(z_sfc .lt. 500.0, var1, var1@_FillValue)
+  var2 = where(z_sfc .lt. 500.0, var2, var2@_FillValue)
+  diff = where(z_sfc .lt. 500.0, diff, diff@_FillValue)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; Plotting
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+print("Processing four panel graphs for "+varcode+" "+date1)
+; set outdir and fout names
+outdir = "./"
+if (zoom .eq. "True")then
+   fout   = outdir+"SLP_seaice_comparison_"+date1+".green"
+else
+   fout   = outdir+"SLP_seaice_comparison_"+date1
+end if
+
+; open workstation, etc.
+wks = gsn_open_wks("ps" ,fout)
+additional_colors = (/"gray85", "forestgreen", "yellow"/)
+gsn_merge_colormaps(wks,colormap,additional_colors)
+plot = new(4, graphic)
+
+;;;;;;;;;;;;;
+; Set resources used for all plots
+;;;;;;;;;;;;
+  res                             = True              ; plot mods desired
+  ;res@gsnRightString              = ""
+  res@gsnLeftString               = ""
+  res@gsnFrame                    = False             ; Do not draw plot 
+  res@gsnDraw                     = False             ; Do not advance fr
+  res@gsnAddCyclic                = False             ; regional - not cyclic 
+  res@mpProjection                = "Stereographic"   ; map projection
+  res@mpCenterLonF                = -114.             ; set the center lat/lon
+  res@mpCenterLatF                = 90.               
+  
+ if (zoom .eq. "True")then
+  res@mpLimitMode                 = "LatLon"	    ; how to zoom in on map
+  res@mpMinLatF                   = 56.             ; set the minimum latitude 
+  res@mpMaxLatF                   = 68.             ; set the maximum latitude 
+  res@mpMinLonF                   = -55.0           ; set the minimum longitude 
+  res@mpMaxLonF                   = -18.0           ; set the maximum longitude 
+ else
+  res@mpLimitMode                 = "Corners"
+  res@mpLeftCornerLatF            = lat_w(0,0)       
+  res@mpLeftCornerLonF            = lon_w(0,0)
+  res@mpRightCornerLatF           = lat_w(n_sn_w-1,n_we_w-1)
+  res@mpRightCornerLonF           = lon_w(n_sn_w-1,n_we_w-1)
+ end if
+
+  res@mpGridAndLimbOn             = True              ; Turn on lat/lon grid
+  res@mpGridLineDashPattern       = 2                 ; Change dash pattern
+  res@mpFillOn                    = True              ; Enables map fill
+  res@mpGeophysicalLineColor      = "black"     ; Color of continents
+  res@mpGeophysicalLineThicknessF = 1.5              ; Make continents thinner
+
+; set resources for sea ice overlay
+  res_ice                            = True               ; reset options
+  res_ice@gsnLeftString              = ""
+  res_ice@gsnRightString             = ""
+  res_ice@gsnFrame                   = False             ; Do not draw plot 
+  res_ice@gsnDraw                    = False             ; Do not advance fr
+  res_ice@cnInfoLabelOn              = False             ; Turn off info on contours at bottom
+  res_ice@cnFillOn                   = False             ; turn on filled contours
+  res_ice@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  res_ice@cnMinLevelValF             = 0.                ; set min contour level specified above
+  res_ice@cnMaxLevelValF             = 0.15              ; set max contour level specified above
+  res_ice@cnLevelSpacingF            = 0.15              ; set contour spacing specified above
+  res_ice@cnLinesOn                  = True              ; contour lines specified above
+  res_ice@cnLineLabelsOn             = False             ; line labels on specified above
+  res_ice@cnLineColor                = "green"
+  res_ice@cnLineThicknessF           = 2.0
+  res_ice@tiXAxisOn                  = False
+  res_ice@tiYAxisOn                  = False
+  res_ice@trGridType                 = "TriangularMesh"
+
+; set resources for sea ice overlay
+  res_ice2                            = True               ; reset options
+  res_ice2@gsnLeftString              = ""
+  res_ice2@gsnRightString             = ""
+  res_ice2@gsnFrame                   = False             ; Do not draw plot 
+  res_ice2@gsnDraw                    = False             ; Do not advance fr
+  res_ice2@cnInfoLabelOn              = False             ; Turn off info on contours at bottom
+  res_ice2@cnFillOn                   = False             ; turn on filled contours
+  res_ice2@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  res_ice2@cnMinLevelValF             = 0.                ; set min contour level specified above
+  res_ice2@cnMaxLevelValF             = 10.0              ; set max contour level specified above
+  res_ice2@cnLevelSpacingF            = 10.0              ; set contour spacing specified above
+  res_ice2@cnLinesOn                  = True              ; contour lines specified above
+  res_ice2@cnLineLabelsOn             = False             ; line labels on specified above
+  res_ice2@cnLineColor                = "forestgreen"
+  res_ice2@cnLineThicknessF           = 2.0
+  res_ice2@tiXAxisOn                  = False
+  res_ice2@tiYAxisOn                  = False
+  res_ice2@trGridType                 = "TriangularMesh"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Start actual plotting
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;
+; Plot 0 - RASM SLP and CICE
+;;;;;;;;;;;;;
+
+  opts                            = res               ; reset options
+  opts@cnFillMode                 = cntype
+  opts@cnFillOn                   = True              ; turn on filled contours
+  opts@gsnSpreadColors            = True              ; use full colormap
+  opts@gsnSpreadColorStart        = spreadstart1      ; start at color specified for each variable above
+  opts@gsnSpreadColorEnd          = spreadend1        ; end at color specified above
+  opts@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  opts@cnMinLevelValF             = cmin1             ; set min contour level specified above
+  opts@cnMaxLevelValF             = cmax1             ; set max contour level specified above
+  opts@cnLevelSpacingF            = clev1             ; set contour spacing specified above
+  opts@cnLinesOn                  = plotlines         ; contour lines specified above
+  opts@cnLineLabelsOn             = plotlines         ; line labels on specified above
+  opts@cnMissingValFillColor      = "gray85"          ; missing value color
+  opts@cnMissingValFillPattern    = 0                 ; fill in
+  opts@tiMainFontHeightF          = 0.013
+  opts@lbLabelStride              = stride1
+  opts@pmLabelBarOrthogonalPosF   = -0.01             ; move label bar closer
+  opts@pmLabelBarHeightF          = 0.075             ; set height of labelbar
+ 
+  opts@tiMainString               = "RASM "+vartitle1+" and "+vartitle2
+
+  cplot = gsn_csm_contour_map(wks, var2, opts)      ; create second plot
+  iplot = gsn_csm_contour(wks, var3, res_ice)   
+  iplot2 = gsn_csm_contour(wks,var3a,res_ice2)
+  overlay(cplot,iplot)
+  overlay(cplot,iplot2)
+  plot(0) = cplot                              
+  delete(opts)
+
+;;;;;;;;;;;;;
+; Plot 1 - difference 
+;;;;;;;;;;;;; 
+
+  opts                            = res
+  opts@cnFillMode                 = cntype
+  opts@cnFillOn                   = True
+  opts@gsnSpreadColors            = True              ; use full colormap
+  opts@gsnSpreadColorStart        = spreadstart2      ; start at color specified above
+  opts@gsnSpreadColorEnd          = spreadend2        ; end at color specified above
+  opts@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  opts@cnMinLevelValF             = cmin2             ; set min contour level specified above
+  opts@cnMaxLevelValF             = cmax2             ; set max contour level specified above
+  opts@cnLevelSpacingF            = clev2             ; set contour spacing specified above
+  opts@cnLinesOn                  = difflines         ; contour lines specified above
+  opts@cnLineLabelsOn             = difflines
+  opts@cnMissingValFillColor      = "gray85"          ; missing value color
+  opts@cnMissingValFillPattern    = 0                 ; fill in
+  opts@tiMainFontHeightF          = 0.013
+  opts@lbLabelStride              = stride2
+  opts@pmLabelBarOrthogonalPosF   = -0.01             ; move label bar closer
+  opts@pmLabelBarHeightF          = 0.075
+
+  opts@tiMainString               = title_diff        
+
+  cplot = gsn_csm_contour_map(wks, diff, opts)        
+  plot(1) = cplot  
+  delete(opts)
+
+;;;;;;;;;;;;;
+; Plot 3 - overlay Sea ice contours
+;;;;;;;;;;;;;            
+
+  opts                            = res               ; set resources for plot 1 to be same as specified above
+  opts@gsnRightString             = "" ; "15% contour"
+  opts@cnLineColor                = "orange"
+  opts@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  opts@cnMinLevelValF             = 0.0               ; set min contour level. designated above for each variable of interest
+  opts@cnMaxLevelValF             = 0.15              ; set max contour level. designated above
+  opts@cnLevelSpacingF            = 0.15              ; set contour spacing. designated above
+  opts@tiMainFontHeightF          = 0.013
+  opts@cnInfoLabelOn              = False
+  opts@cnLineLabelFontColor       = opts@cnLineColor  ; set the contour labels to be the same as the contour line color
+  opts@cnLineLabelBackgroundColor = "Transparent"     ; set the background behind contour labels to be transparent
+  opts@trGridType                 = "TriangularMesh"
+
+; Plot 1 (RASM 15% overlay)
+  opts2                            = opts             ; set options for the second contour set to be the same
+  opts2@cnLineColor                = "green"           ; specify second contour to be diff. color
+  opts2@cnLineLabelFontColor       = opts2@cnLineColor
+  opts2@gsnRightString             = ""
+
+; Plot 2 (RASM 10cm overlay)
+  opts3                            = res             ; set options for the second contour set to be the same
+  opts3@gsnRightString             = "" ;"15% contour"
+  opts3@cnLineColor                = "forestgreen"
+  opts3@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  opts3@cnMinLevelValF             = 0.0               ; set min contour level. designated above for each variable of interest
+  opts3@cnMaxLevelValF             = 10.0              ; set max contour level. designated above
+  opts3@cnLevelSpacingF            = 10.0              ; set contour spacing. designated above
+  opts3@tiMainFontHeightF          = 0.013
+  opts3@cnInfoLabelOn              = False
+  opts3@cnLineLabelFontColor       = opts3@cnLineColor  ; set the contour labels to be the same as the contour line color
+  opts3@cnLineLabelBackgroundColor = "Transparent"     ; set the background behind contour labels to be transparent
+  opts3@trGridType                 = "TriangularMesh"
+
+; reset and deletion options to prevent overwrites and warnings for overlay:
+  delete(opts2@mpProjection)
+  delete(opts2@mpLimitMode)
+  delete(opts2@mpCenterLonF)
+  delete(opts2@mpCenterLatF)
+  delete(opts2@mpGridAndLimbOn)
+  delete(opts2@mpFillOn)
+  delete(opts2@mpGridLineDashPattern)
+  delete(opts2@mpGeophysicalLineColor)
+  delete(opts2@mpGeophysicalLineThicknessF)
+  if (zoom .eq. "True")then
+     delete(opts2@mpMaxLonF)
+     delete(opts2@mpMinLonF)
+     delete(opts2@mpMaxLatF)
+     delete(opts2@mpMinLatF)
+  else
+     delete(opts2@mpLeftCornerLonF)
+     delete(opts2@mpLeftCornerLatF)
+     delete(opts2@mpRightCornerLatF)
+     delete(opts2@mpRightCornerLonF)
+  end if
+
+; reset and deletion options to prevent overwrites and warnings for overlay:
+  delete(opts3@mpProjection)
+  delete(opts3@mpLimitMode)
+  delete(opts3@mpCenterLonF)
+  delete(opts3@mpCenterLatF)
+  delete(opts3@mpGridAndLimbOn)
+  delete(opts3@mpFillOn)
+  delete(opts3@mpGridLineDashPattern)
+  delete(opts3@mpGeophysicalLineColor)
+  delete(opts3@mpGeophysicalLineThicknessF)
+  if (zoom .eq. "True")then
+     delete(opts3@mpMaxLonF)
+     delete(opts3@mpMinLonF)
+     delete(opts3@mpMaxLatF)
+     delete(opts3@mpMinLatF)
+  else
+     delete(opts3@mpLeftCornerLonF)
+     delete(opts3@mpLeftCornerLatF)
+     delete(opts3@mpRightCornerLatF)
+     delete(opts3@mpRightCornerLonF)
+  end if
+
+  opts@tiMainString               = "RASM and Satellite "+vartitle2+ " Edge"
+
+  cplot1 = gsn_csm_contour_map(wks,var4,opts)  ; create plot of first contours
+  cplot2 = gsn_csm_contour(wks,var3,opts2)    ; create plot of second contours
+  cplot3 = gsn_csm_contour(wks,var3a,opts3)
+  overlay(cplot1,cplot2)                       ; overlay contour 2 on contour 1. overlay plot wil have title cplot1
+  overlay(cplot1,cplot3)
+  plot(2) = cplot1                              ; make panel section of this plot
+
+; legend resources- for plot 1 overlay
+  lgres                    = True
+  lgres@lgLineColors       = (/"orange","green","forestgreen"/)   ; make the colors for the legend
+  lgres@lgMonoDashIndex    = True               ; sets both contour lines to same dash type
+  lgres@lgAutoManage       = False              ; false allows me to set the legend directly
+  lgres@vpWidthF           = 0.30               ; width of legend (NDC)
+  lgres@vpHeightF          = 0.05               ; height of legend (NDC)
+  lgres@lgLineDashSegLenF  = 0.01
+  lgres@lgLabelFontHeightF = 0.03
+  lgres@lgLineLabelStrings = (/"", "", ""/)         ; take of any automatic line labels
+  lbid2 = gsn_create_legend(wks,3,(/"Satellite 15%","RASM 15%", "RASM 10cm"/),lgres)         ; create legend
+
+; annotate first plot by adding legend
+  amres                    = True
+  amres@amParallelPosF     = 0.25	        ; move legend to the right
+  amres@amOrthogonalPosF   = 0.60               ; move the legend down
+  annoid2 = gsn_add_annotation(plot(2),lbid2,amres)   ; add legend to plot 
+  delete([/opts,opts2,lgres,amres/])
+
+;;;;;;;;;;;;;
+; Plot 3 - overlay SLP contours
+;;;;;;;;;;;;;            
+
+  opts                            = res               ; set resources for plot 1 to be same as specified above
+  opts@cnLineColor                = "red"
+  opts@cnLevelSelectionMode       = "ManualLevels"    ; set manual contour
+  opts@cnMinLevelValF             = cmin1             ; set min contour level. designated above for each variable of interest
+  opts@cnMaxLevelValF             = cmax1             ; set max contour level. designated above
+  opts@cnLevelSpacingF            = clevd           ; set contour spacing. designated above
+  opts@tiMainFontHeightF          = 0.013
+  opts@cnInfoLabelOn              = False
+  opts@cnLineLabelFontColor       = opts@cnLineColor  ; set the contour labels to be the same as the contour line color
+  opts@cnLineLabelBackgroundColor = "Transparent"     ; set the background behind contour labels to be transparent
+
+; Plot 1 (overlay)
+  opts2                            = opts             ; set options for the second contour set to be the same
+  opts2@cnLineColor                = "blue"           ; specify second contour to be diff. color
+  opts2@cnLineLabelFontColor       = opts2@cnLineColor
+  opts2@gsnRightString             = ""
+
+; reset and deletion options to prevent overwrites and warnings for overlay:
+  delete(opts2@mpProjection)
+  delete(opts2@mpLimitMode)
+  delete(opts2@mpCenterLonF)
+  delete(opts2@mpCenterLatF)
+  delete(opts2@mpGridAndLimbOn)
+  delete(opts2@mpFillOn)
+  delete(opts2@mpGridLineDashPattern)
+  delete(opts2@mpGeophysicalLineColor)
+  delete(opts2@mpGeophysicalLineThicknessF)
+  if (zoom .eq. "True")then
+     delete(opts2@mpMaxLonF)
+     delete(opts2@mpMinLonF)
+     delete(opts2@mpMaxLatF)
+     delete(opts2@mpMinLatF)
+  else
+     delete(opts2@mpLeftCornerLonF)
+     delete(opts2@mpLeftCornerLatF)
+     delete(opts2@mpRightCornerLatF)
+     delete(opts2@mpRightCornerLonF)
+  end if
+
+  opts@tiMainString               = "RASM and ERA-I "+vartitle1
+
+  cplot1 = gsn_csm_contour_map(wks,var1,opts)  ; create plot of first contours
+  cplot2 = gsn_csm_contour(wks,var2,opts2)    ; create plot of second contours
+  overlay(cplot1,cplot2)                       ; overlay contour 2 on contour 1. overlay plot wil have title cplot1
+  plot(3) = cplot1                              ; make panel section of this plot
+  delete(opts)
+  delete(opts2)
+
+; legend resources- for plot 1 overlay
+  lgres                    = True
+  lgres@lgLineColors       = (/"red","blue"/)   ; make the colors for the legend
+  lgres@lgMonoDashIndex    = True               ; sets both contour lines to same dash type
+  lgres@lgAutoManage       = False              ; false allows me to set the legend directly
+  lgres@vpWidthF           = 0.30               ; width of legend (NDC)
+  lgres@vpHeightF          = 0.05               ; height of legend (NDC)
+  lgres@lgLineDashSegLenF  = 0.01
+  lgres@lgLabelFontHeightF = 0.03
+  lgres@lgLineLabelStrings = (/"", ""/)         ; take of any automatic line labels
+  lbid3 = gsn_create_legend(wks,2,(/"ERA-I", "RASM"/),lgres)         ; create legend
+
+; annotate plot by adding legend
+  amres                    = True
+  amres@amParallelPosF     = 0.25	        ; move legend to the right
+  amres@amOrthogonalPosF   = 0.60               ; move the legend down
+  annoid3 = gsn_add_annotation(plot(3),lbid3,amres)   ; add legend to plot                            
+
+;;;;;;;;;;;;;
+; Plot final - panel plot set 
+;;;;;;;;;;;;; 
+  pnlres                            = True
+  pnlres@txString                   = "1990-2010 mean for "+seas
+  pnlres@txFontHeightF              = 0.02
+  pnlres@gsnPaperOrientation        = "landscape"      ; landscape mode
+  pnlres@gsnPanelYWhiteSpacePercent = 3                ; Add white space b/w plots.
+  pnlres@gsnPanelXWhiteSpacePercent = 3                ; Add white space b/w plots.
+  pnlres@gsnPanelScalePlotIndex     = 1
+  pnlres@gsnMaximize                = True	       ; fill the page
+  gsn_panel(wks,(/plot/),(/2,2/),pnlres)               ; create final panel plot
+ 
+
+  delete(wks)
+  system("convert -trim -border 10 -bordercolor white -density 300 "+  \
+         "-rotate -90 -trim -border 10 "+fout+".ps "+fout+".png")
+
+;;;;;;;;;;;;;;;;;;;;;; END script
+end

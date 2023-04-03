@@ -1,0 +1,111 @@
+;***************************************
+; PROGRAM DESCRIPTION: Script to use ESMF weights and interpolate
+;                      data from WRF to POP RASM grid (Regional)
+; INPUT DATA: WRF netcdf file and ESMF mapping file
+; OUTPUT DATA: Netcdf file with WRF data on POP grid
+; CREATOR: Alice DuVivier (July 2015)
+;***************************************
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
+;***************************************
+begin
+; MANUAL INPUTS - for testing purposes. Otherwise loaded from csh script
+; ******************************************************
+;yy = "2010"
+;mm = "01"
+;dd = "01"
+;dir_in = "./"    ; "./wrf_orig_files/"
+;dir_out = "./"   ;"./wrf_interp_sfc_files/"
+; ******************************************************
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; BEGIN SCRIPT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+setfileoption("nc","Format","LargeFile")
+setfileoption("nc","SuppressClose",False)
+
+dir_geo     = "/vardar/data5/duvivier/SOM-RASM/analysis/regrid_WRF_to_POP/"
+
+; load POP geo file
+geo_pop = "pop_geo_green.nc" 
+f_pop = addfile(dir_geo+geo_pop,"r") 
+lat_pop = f_pop->grid_center_lat 
+lon_pop = f_pop->grid_center_lon 
+; convert pop lat/lon from radians to degrees
+lat_pop = lat_pop*(180.0/3.14159)
+lon_pop = lon_pop*(180.0/3.14159)
+lat_pop@units = "degrees"
+lon_pop@units = "degrees"
+
+; set WRF input file and load variables for interpolation
+fin = "wrf."+yy+"-"+mm+"-"+dd+".sfc.green.nc"
+f = addfile(dir_in+fin,"r")
+lat_wrf = f->lat
+lon_wrf = f->lon
+hgt_wrf = f->Z_sfc
+tgrad_wrf = f->Tgrad
+qgrad_wrf = f->Qgrad
+
+; set Regridded output file
+fout = "wrf2pop."+yy+"-"+mm+"-"+dd+".sfc.green.nc"
+outfile = addfile(dir_out+fout,"c")
+
+; write lat/lon to new file
+outfile ->lat_pop = lat_pop
+outfile ->lon_pop = lon_pop
+print("Wrote lat/lon info")
+
+; set Weight File (must be in same directory as script)
+WgtFile = "ESMF_wgt-WRF_to_POP.nc"
+
+; set options for regridding
+  optESMF                     = True
+  optESMF@InterpMethod        = "bilinear"
+  optESMF@WgtFileName         = WgtFile
+  optESMF@Debug               = False ;True
+  optESMF@CopyVarAtts         = False ;True
+  optESMF@CopyVarCoords       = False ;True
+  optESMF@ForceOverwrite      = False ;True
+  optESMF@RemoveSrcFile       = True  ;False   
+  optESMF@RemoveDstFile       = True  ;False   
+  optESMF@RemoveWgtFile       = False 
+  optESMF@ForceOverwrite      = True  
+  optESMF@SrcGridLat          = lat_wrf
+  optESMF@SrcGridLon          = lon_wrf
+  optESMF@SrcInputFileName    = geo_wrf
+  optESMF@DstGridLat          = lat_pop
+  optESMF@DstGridLon          = lon_pop
+  optESMF@DstInputFileName    = geo_pop
+  optESMF@SrcTitle            = "RASM WRF domain - Greenland subset"
+  optESMF@DstTitle            = "RASM POP domain - Greenland subset "
+  optESMF@SrcRegional         = True     ; source data is regional
+  optESMF@DstRegional         = True     ; destination grid is regional
+  optESMF@SrcGridType         = "curvilinear"   ; WRF is a curvilinear grid
+  optESMF@DstGridType         = "curvilinear"   ; POP is a curvilinear grid
+
+; regrid the height and create weight file
+hgt_pop = ESMF_regrid(hgt_wrf,optESMF)
+print("Weights generated successfully")
+copy_VarCoords(lat_pop, hgt_pop)
+outfile ->Z_sfc = hgt_pop
+print("Regridded terrain")
+
+tgrad_pop = ESMF_regrid_with_weights(tgrad_wrf,WgtFile,optESMF)
+copy_VarCoords(lat_pop, tgrad_pop)
+outfile ->Tgrad = tgrad_pop
+print("Regridded temperature gradient")
+
+qgrad_pop = ESMF_regrid_with_weights(qgrad_wrf,WgtFile,optESMF)
+copy_VarCoords(lat_pop, qgrad_pop)
+outfile ->Qgrad = qgrad_pop
+print("Regridded moisture gradient")
+
+; NOTE: Could add other vars (Teta0, Qeta0, etc.) if we choose to.
+
+print("Completed gridding of WRF to POP gradients for: "+yy+"-"+mm+"-"+dd)
+;;;;;;;;;;;;;;;;;;;;;; END script
+end
+

@@ -1,0 +1,152 @@
+;***************************************
+; PROGRAM DESCRIPTION: This script creates node averages of WRF data
+; INPUT DATA: SOM date and visual files for three data types
+; OUTPUT DATA: NetCDF files of average WRF data
+; CREATOR: Alice DuVivier - Sept. 2014
+;***************************************
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;***************************************
+begin
+; MANUAL INPUTS - for testing purposes
+; ******************************************************
+nx_input = "4"
+ny_input = "3"
+varcode = "TAU"
+; options: "TAU" "SH" "LH" "BUOY"
+; ******************************************************
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; BEGIN SCRIPT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+print("Running node average/variance calculations by month")
+
+;;;;;;;;;;
+; Load info for files
+;;;;;;;;;;
+print("Loading dates and SOM visual data")
+dir = "/vardar/data5/duvivier/SOM-RASM/analysis/"+nx_input+"x_"+ny_input+"y_files/"
+datefile = dir+"wrf50_199011_201003_dates.txt"
+visfile  = dir+"wrf50_199011_201003_wind.vis"
+dates = ndtooned(readAsciiTable(datefile,1,"string",0)) ; ignores no rows
+ndates = dimsizes(dates)
+dateschar = stringtochar(dates)
+yy = chartostring(dateschar(:,0:3))
+mm = chartostring(dateschar(:,5:6))
+dd = chartostring(dateschar(:,8:9))
+
+vis = new((/ndates,3/),integer)
+vis = readAsciiTable(visfile,3,"integer",1) ; ignores first row
+
+; create filenames array
+files = new((/ndates/),string)
+files = "/vardar/data5/duvivier/SOM-RASM/analysis/surface_files/pop_sfc_files/pop."+yy+"-"+mm+"-"+dd+".sfc.green.nc"
+
+; Load 2D plotting information
+geo = addfile(files_sub(0),"r")
+TLAT = geo->TLAT
+TLONG = geo->TLONG
+TAREA = geo->TAREA
+dims = dimsizes(TAREA)
+n_sn = dims(0)
+n_we = dims(1)
+
+; Calculate node counts and frequencies for comparison of interest
+nx_node = stringtoint(nx_input)
+ny_node = stringtoint(ny_input)
+nnode = nx_node*ny_node
+
+; Create new file that corresponds to this node for averages/variances
+  fout = varcode+"_correlation_with_MLD_change"
+; Information about variables we will correlate with change in MLD
+if (varcode.eq."LH")then
+  vartitle = "Surface Latent Heat Flux"
+  invar = "LH"
+end if
+if (varcode.eq."SH")then
+  vartitle = "Surface Sensible Heat Flux"
+  invar = "SH"
+end if
+if (varcode.eq."BUOY")then
+  vartitle = "Surface Buoyancy flux"
+  invar = "Buoy_flux"
+end if
+
+; Note that all will be compared to HMXL_1, the change in mixed layer depth 1 day after
+; invar0 = HMXL_lag, level 0
+; 2 days after would be same variable, level 1
+; 3 days after would be same variable, level 2
+; don't do more than 3 days after, not necessary
+
+; create new array to fill with correlation values
+  corr = new((/nnode,n_sn,n_we/),"float")
+  corr_sig = new((/nnode,n_sn,n_we/),"float")
+
+fill = new((/1/),"float")
+n = 0
+;;;;;;;;;
+; calculate Node correlations
+;;;;;;;;;;
+; loop through each node
+do y = 0, ny_node - 1
+ do x = 0, nx_node - 1
+
+   print("node: "+x+","+y)
+  ; These are the dates for this particular node:
+   dateindices = ind((vis(:,0).eq.x.and.vis(:,1).eq.y))
+if (.not.all(ismissing(dateindices))) then
+  files_sub = files(dateindices)
+
+  ; Load files that correspond to this node
+   dim_files = dimsizes(files_sub)
+   node_files = addfiles(files_sub,"r")
+
+  ; write the number of files going into the average for later statistical tests
+   number_dates = dim_files
+
+
+
+return
+
+  ;; Mixed Layer Depth
+   HMXL = new((/dim_files,dim_sn,dim_we/),"float")
+   HMXL_anom = new((/dim_files,dim_sn,dim_we/),"float")
+   HMXL_pcnt = new((/dim_files,dim_sn,dim_we/),"float")
+   f = 0
+   do f = 0,dim_files - 1
+     pop = addfile(files_sub(f),"r")
+     HMXL(f,:,:) = pop->HMXL
+     HMXL_anom(f,:,:) = pop->HMXL_anom
+     HMXL_pcnt(f,:,:) = pop->HMXL_pcnt
+     delete(pop)
+   end do
+   ; get averages and variances
+   HMXL_avg = dim_avg_n_Wrap(HMXL,0)
+   HMXL_var = dim_variance_n_Wrap(HMXL,0)
+   HMXL_anom_avg = dim_avg_n_Wrap(HMXL_anom,0)
+   HMXL_anom_var = dim_variance_n_Wrap(HMXL_anom,0)
+   HMXL_pcnt_avg = dim_avg_n_Wrap(HMXL_pcnt,0)
+   HMXL_pcnt_var = dim_variance_n_Wrap(HMXL_pcnt,0)
+   ; write to node average file
+   node_avg ->HMXL_avg = HMXL_avg
+   node_avg ->HMXL_var = HMXL_var
+   node_avg ->HMXL_anom_avg = HMXL_anom_avg
+   node_avg ->HMXL_anom_var = HMXL_anom_var
+   node_avg ->HMXL_pcnt_avg = HMXL_pcnt_avg
+   node_avg ->HMXL_pcnt_var = HMXL_pcnt_var
+   print("HMXL")
+   delete([/HMXL,HMXL_avg,HMXL_var,HMXL_anom,HMXL_anom_avg,HMXL_anom_var,HMXL_pcnt,HMXL_pcnt_avg, HMXL_pcnt_var/])
+
+  n = n + 1
+  ;; delete variables to use again
+  delete([/fout_node,node_avg,dim_files,node_files,dateindices,files_sub/])
+else
+  print("All files missing for node")
+end if
+
+end do
+end do
+;;;;;;;;;;;;;;;;;;;;;; END script
+end
